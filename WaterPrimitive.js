@@ -167,11 +167,8 @@ function addTextureUniform(options) {
   const magnificationFilter =
     options.magnificationFilter || Cesium.TextureMagnificationFilter.LINEAR;
 
-  const secureImgSrc = imgSrc.replace(/^http:\/\//i, 'https://');
-  
   const img = new Image();
-  img.crossOrigin = "anonymous";
-  img.src = secureImgSrc;
+  img.src = imgSrc;
   img.addEventListener("load", () => {
     const texture = new Cesium.Texture({
       context,
@@ -333,7 +330,7 @@ export default class WaterPrimitive {
     this._initUniforms = {
       normalMapUrl: Cesium.defaultValue(
         options.normalMapUrl,
-        "https://threejs.org/examples/textures/waternormals.jpg"
+        "./waternormals.jpg"
       ),
       size: Cesium.defaultValue(options.rippleSize, 50.0),
       waterColor: Cesium.defaultValue(
