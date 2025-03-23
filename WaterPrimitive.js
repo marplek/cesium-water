@@ -330,7 +330,7 @@ export default class WaterPrimitive {
     this._initUniforms = {
       normalMapUrl: Cesium.defaultValue(
         options.normalMapUrl,
-        "./waterNormals.jpg"
+        "https://threejs.org/examples/textures/waternormals.jpg"
       ),
       size: Cesium.defaultValue(options.rippleSize, 50.0),
       waterColor: Cesium.defaultValue(
