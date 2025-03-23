@@ -33,4 +33,4 @@ tmp/
 .cache/
 coverage/
 
-config.js
+# config.js
