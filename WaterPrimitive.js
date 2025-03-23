@@ -167,8 +167,11 @@ function addTextureUniform(options) {
   const magnificationFilter =
     options.magnificationFilter || Cesium.TextureMagnificationFilter.LINEAR;
 
+  const secureImgSrc = imgSrc.replace(/^http:\/\//i, 'https://');
+  
   const img = new Image();
-  img.src = imgSrc;
+  img.crossOrigin = "anonymous";
+  img.src = secureImgSrc;
   img.addEventListener("load", () => {
     const texture = new Cesium.Texture({
       context,
