@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Water</title>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0"
+    />
+
+    <script src="https://cesium.com/downloads/cesiumjs/releases/1.90/Build/Cesium/Cesium.js"></script>
+    <link
+      href="https://cesium.com/downloads/cesiumjs/releases/1.90/Build/Cesium/Widgets/widgets.css"
+      rel="stylesheet"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .lil-gui.autoPlace {
+        max-height: 100%;
+        position: fixed;
+        left: 15px;
+        top: 15px;
+        z-index: 1001;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="map" style="width: 100%; height: 100%"></div>
+  </body>
+</html>
+<script type="module">
+  import WaterPrimitive from "./WaterPrimitive.js";
+  import { GUI } from "https://cdn.jsdelivr.net/npm/lil-gui@0.18/dist/lil-gui.esm.min.js";
+  import { cesiumConfig } from "./config.js";
+
+  Cesium.Ion.defaultAccessToken = cesiumConfig.accessToken;
+
+  var viewer = new Cesium.Viewer("map");
+
+  const positions = [
+    Cesium.Cartographic.fromDegrees(-73.9653, 40.7812, 5.9),
+    Cesium.Cartographic.fromDegrees(-73.9603, 40.7812, 6.2),
+    Cesium.Cartographic.fromDegrees(-73.9603, 40.7762, 8.4),
+    Cesium.Cartographic.fromDegrees(-73.9653, 40.7762, 9.3),
+    Cesium.Cartographic.fromDegrees(-73.9653, 40.7812, 9.0),
+  ];
+  const bbb = viewer.scene.primitives.add(
+    new Cesium.Cesium3DTileset({
+      url: Cesium.IonResource.fromAssetId(75343),
+    })
+  );
+
+  const aaa = new WaterPrimitive({
+    scene: viewer.scene,
+    positions: positions,
+    height: 10,
+    rippleSize: 100,
+  });
+
+  
+const gui2 = new GUI();
+const waterParams = {
+  rippleSize: 50.0,
+  transparency: 0.9,
+  reflectivity: 0.3,
+  distortion: 3.7,
+  height: 10,
+  boxSize: 8,
+  boxSpeed: 0.5,
+  boxColor: '#42A5F5',
+  showBox: true
+};
+function waterParamsUpdate() {
+  aaa.rippleSize = waterParams['rippleSize'];
+  aaa.waterAlpha = waterParams['transparency'];
+  aaa.reflectivity = waterParams['reflectivity'];
+  aaa.distortionScale = waterParams['distortion'];
+  aaa.height = waterParams['height'];
+  
+  if (floatingBox) {
+    floatingBox.box.dimensions = new Cesium.Cartesian3(
+      waterParams['boxSize'], 
+      waterParams['boxSize'], 
+      waterParams['boxSize']
+    );
+    
+    let color = Cesium.Color.fromCssColorString(waterParams['boxColor']);
+    floatingBox.box.material = color.withAlpha(0.8);
+    
+    floatingBox.show = waterParams['showBox'];
+  }
+}
+
+gui2.add(waterParams, "rippleSize").min(0).max(300).onChange(waterParamsUpdate);
+gui2.add(waterParams, "transparency").min(0).max(1).onChange(waterParamsUpdate);
+gui2.add(waterParams, "reflectivity").min(0).max(1).onChange(waterParamsUpdate);
+gui2.add(waterParams, "distortion").min(0).max(8).onChange(waterParamsUpdate);
+gui2.add(waterParams, "height").min(-10).max(100).onChange(waterParamsUpdate);
+
+const boxFolder = gui2.addFolder('Floating Box');
+boxFolder.add(waterParams, "boxSize").min(1).max(20).onChange(waterParamsUpdate);
+boxFolder.add(waterParams, "boxSpeed").min(0.1).max(3);
+boxFolder.addColor(waterParams, "boxColor").onChange(waterParamsUpdate);
+boxFolder.add(waterParams, "showBox").onChange(waterParamsUpdate);
+
+var box = viewer.entities.add({
+    position: Cesium.Cartesian3.fromDegrees(-73.9628, 40.7787, 30),
+    ellipsoid: {
+        radii: new Cesium.Cartesian3(20, 20, 20),
+        outline: true,
+        outlineColor: Cesium.Color.BLACK,
+        material: Cesium.Color.YELLOW,
+        clampToGround: true,
+        classificationType: Cesium.ClassificationType.BOX,
+    }
+});
+
+var floatingBox = viewer.entities.add({
+    name: "Floating Box",
+    position: new Cesium.CallbackProperty(function(time) {
+        // Base position - in the center of the water (Manhattan reservoir)
+        var longitude = -73.9638;
+        var latitude = 40.7777;
+        var waterHeight = waterParams['height']; 
+        
+        var seconds = Cesium.JulianDate.secondsDifference(time, Cesium.JulianDate.fromDate(new Date()));
+        var speed = waterParams['boxSpeed'];
+        
+        var verticalOffset = 3 * Math.sin(seconds * speed);
+        
+        var horizontalOffset_x = 2 * Math.sin(seconds * speed * 0.3);
+        var horizontalOffset_y = 2 * Math.cos(seconds * speed * 0.4);
+        
+        return Cesium.Cartesian3.fromDegrees(
+            longitude + horizontalOffset_x * 0.0001, 
+            latitude + horizontalOffset_y * 0.0001, 
+            waterHeight + 2 + verticalOffset
+        );
+    }, false),
+    box: {
+        dimensions: new Cesium.Cartesian3(
+          waterParams['boxSize'], 
+          waterParams['boxSize'], 
+          waterParams['boxSize']
+        ),
+        material: Cesium.Color.fromCssColorString(waterParams['boxColor']).withAlpha(0.8),
+        outline: true,
+        outlineColor: Cesium.Color.BLACK
+    },
+    show: waterParams['showBox']
+});
+
+viewer.scene.preUpdate.addEventListener(function(scene, time) {
+    if (floatingBox && floatingBox.show) {
+        var seconds = Cesium.JulianDate.secondsDifference(time, Cesium.JulianDate.fromDate(new Date()));
+        var rotationSpeed = waterParams['boxSpeed'] * 0.3;
+        
+        floatingBox.orientation = Cesium.Quaternion.fromHeadingPitchRoll(
+            new Cesium.HeadingPitchRoll(
+                seconds * rotationSpeed, 
+                seconds * rotationSpeed * 0.7, 
+                seconds * rotationSpeed * 0.5
+            )
+        );
+    }
+});
+
+viewer.flyTo(box, {
+  duration: 1,
+  offset : {
+    heading: Cesium.Math.toRadians(0.0),
+    pitch: Cesium.Math.toRadians(-25),
+    range: 500
+  }
+});
+</script>
